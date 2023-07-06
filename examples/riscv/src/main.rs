@@ -31,7 +31,7 @@ const NET_QUEUE_SIZE: usize = 16;
 
 #[no_mangle]
 extern "C" fn main(_hartid: usize, device_tree_paddr: usize) {
-    log::set_max_level(LevelFilter::Info);
+    log::set_max_level(LevelFilter::Debug);
     init_dt(device_tree_paddr);
     info!("test end");
 }
@@ -48,6 +48,9 @@ fn walk_dt(fdt: Fdt) {
         if let Some(compatible) = node.compatible() {
             if compatible.all().any(|s| s == "virtio,mmio") {
                 virtio_probe(node);
+            }
+            if compatible.all().any(|s| s != "virtio,mmio") {
+                debug!("Non virtio Device node {}",node.name);
             }
         }
     }
@@ -111,9 +114,15 @@ fn virtio_gpu<T: Transport>(transport: T) {
     let width = width as usize;
     let height = height as usize;
     info!("GPU resolution is {}x{}", width, height);
+    // 设置显示缓冲区
     let fb = gpu.setup_framebuffer().expect("failed to get fb");
     for y in 0..height {
         for x in 0..width {
+            // 每个像素点 包含 RGB 三色的值
+            // ex: 假定有2X2 4个点, 每个点用三个RGB值表示 , 那么数组就是 [255,255,255,100,100,100,200,200,200,50,50,50]
+            //  |(255,255,255) | (100,100,100) |
+            //  |--------------| --------------|
+            //  |(200,200,200) | (50,50,50)    |
             let idx = (y * width + x) * 4;
             fb[idx] = x as u8;
             fb[idx + 1] = y as u8;
