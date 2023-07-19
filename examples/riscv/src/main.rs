@@ -68,6 +68,8 @@ fn virtio_probe(node: FdtNode) {
             node.compatible().map(Compatible::first),
         );
         let header = NonNull::new(vaddr as *mut VirtIOHeader).unwrap();
+        let virtio_header_ref = unsafe { (vaddr as *mut VirtIOHeader).as_ref().unwrap() };
+        info!("VirtIOHeader : {:?}",*virtio_header_ref);
         match unsafe { MmioTransport::new(header) } {
             Err(e) => warn!("Error creating VirtIO MMIO transport: {}", e),
             Ok(transport) => {
